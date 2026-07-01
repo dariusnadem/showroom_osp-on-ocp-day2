@@ -122,7 +122,8 @@
   register: openstack_csv
   until: >
     openstack_csv.resources | length > 0 and
-    openstack_csv.resources[0].status.phase == 'Succeeded'
+    openstack_csv.resources | selectattr('metadata.name', 'match', '^openstack-operator.*') | selectattr('status', 'defined') | selectattr('status.phase', 'defined') | list | length > 0 and
+    (openstack_csv.resources | selectattr('metadata.name', 'match', '^openstack-operator.*') | selectattr('status', 'defined') | selectattr('status.phase', 'defined') | list | first).status.phase == 'Succeeded'
   retries: 60
   delay: 10
 
@@ -130,7 +131,8 @@
   debug:
     msg: |
       === OpenStack Operator Installation Status ===
-      CSV Phase: {{ openstack_csv.resources[0].status.phase if openstack_csv.resources | length > 0 else 'No CSV found' }}
+      CSV Name: {{ (openstack_csv.resources | selectattr('metadata.name', 'match', '^openstack-operator.*') | list | first).metadata.name }}
+      CSV Phase: {{ (openstack_csv.resources | selectattr('metadata.name', 'match', '^openstack-operator.*') | selectattr('status', 'defined') | selectattr('status.phase', 'defined') | list | first).status.phase | default('Pending') }}
       CRD Available: openstacks.operator.openstack.org
       Ready to initialize OpenStack operator
   when: openstack_csv.resources | length > 0
